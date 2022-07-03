@@ -1,6 +1,10 @@
 # Compositing
 Skia compositing sample
 
+# Compilation
+
+Open src/Compositing.dproj in Delphi and run the thing.
+
 # Notes
 This project outputs to the repo root to make media location simple
 
