@@ -251,7 +251,7 @@
         <DelphiCompile Include="$(MainSource)">
             <MainSource>MainSource</MainSource>
         </DelphiCompile>
-        <DCCReference Include="Compositing.pas">
+        <DCCReference Include="MainUnit.pas">
             <Form>frmShaderView</Form>
             <FormType>fmx</FormType>
         </DCCReference>

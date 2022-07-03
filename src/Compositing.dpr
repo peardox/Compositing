@@ -7,7 +7,7 @@ uses
   FMX.Forms,
   FMX.Types,
   Skia.FMX,
-  Compositing in 'Compositing.pas' {frmShaderView};
+  MainUnit in 'MainUnit.pas' {frmShaderView};
 
 {$R *.res}
 

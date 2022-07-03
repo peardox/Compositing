@@ -1,4 +1,4 @@
-unit SimpleShaderMain;
+unit MainUnit;
 
 interface
 
