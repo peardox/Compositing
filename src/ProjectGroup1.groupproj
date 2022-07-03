@@ -1,0 +1,48 @@
+﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <PropertyGroup>
+        <ProjectGuid>{F8E8297E-BA65-4557-BFEE-9C3238B1622C}</ProjectGuid>
+    </PropertyGroup>
+    <ItemGroup>
+        <Projects Include="Compositing.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="..\..\SkiaSimpleShaderViewer\src\SimpleShader.dproj">
+            <Dependencies/>
+        </Projects>
+    </ItemGroup>
+    <ProjectExtensions>
+        <Borland.Personality>Default.Personality.12</Borland.Personality>
+        <Borland.ProjectType/>
+        <BorlandProject>
+            <Default.Personality/>
+        </BorlandProject>
+    </ProjectExtensions>
+    <Target Name="Compositing">
+        <MSBuild Projects="Compositing.dproj"/>
+    </Target>
+    <Target Name="Compositing:Clean">
+        <MSBuild Projects="Compositing.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="Compositing:Make">
+        <MSBuild Projects="Compositing.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="SimpleShader">
+        <MSBuild Projects="..\..\SkiaSimpleShaderViewer\src\SimpleShader.dproj"/>
+    </Target>
+    <Target Name="SimpleShader:Clean">
+        <MSBuild Projects="..\..\SkiaSimpleShaderViewer\src\SimpleShader.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="SimpleShader:Make">
+        <MSBuild Projects="..\..\SkiaSimpleShaderViewer\src\SimpleShader.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="Build">
+        <CallTarget Targets="Compositing;SimpleShader"/>
+    </Target>
+    <Target Name="Clean">
+        <CallTarget Targets="Compositing:Clean;SimpleShader:Clean"/>
+    </Target>
+    <Target Name="Make">
+        <CallTarget Targets="Compositing:Make;SimpleShader:Make"/>
+    </Target>
+    <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
+</Project>

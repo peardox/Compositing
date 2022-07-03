@@ -1,0 +1,28 @@
+uniform float4 	cFront;					// A Tile Colour
+uniform float4 	cBack;					// Another Tile Colour
+uniform int 	iGridSize;				// Grid Size
+uniform float2 	iResolution;      		// Viewport resolution (pixels)
+
+int mod(int a, int b) {
+	return a - (b * (a/b));
+}
+
+float4 main( in float2 fragCoord )
+{
+	int xpos = (int(fragCoord.x) / iGridSize);
+	int ypos = (int(fragCoord.y) / iGridSize);
+	int x = mod(xpos, 2);
+	int y = mod(ypos, 2);
+
+	float4 gridColor = cBack;
+
+	if((x == 1) && (y == 0)) {
+		gridColor = cFront;
+	}
+	if((x == 0) && (y == 1)) {
+		gridColor = cFront;
+	}
+	
+	return( gridColor );
+}
+
