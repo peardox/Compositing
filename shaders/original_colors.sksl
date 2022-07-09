@@ -76,6 +76,9 @@ float4 main( in float2 fragCoord )
 		if(any(greaterThan((fragCoord * scale_to_fit), (iImage1Resolution.xy)))) {
 			styled = float4(0, 0, 0, 0);
 		}
+		if(any(lessThan((fragCoord * scale_to_fit), float2(0, 0)))) {
+			styled = float4(0, 0, 0, 0);
+		}
 			
 	} else {
 		if(iImage2Valid == 1) {
@@ -86,6 +89,9 @@ float4 main( in float2 fragCoord )
 			float2 scale_to_fit = float2(fit_scale, fit_scale);
 			styled = iImage2.eval(fragCoord * scale_to_fit).rgba;
 			if(any(greaterThan((fragCoord * scale_to_fit), (iImage2Resolution.xy)))) {
+				styled = float4(0, 0, 0, 0);
+			}
+			if(any(lessThan((fragCoord * scale_to_fit), float2(0, 0)))) {
 				styled = float4(0, 0, 0, 0);
 			}
 		}
