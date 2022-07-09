@@ -5,8 +5,11 @@ uniform int 	iPreserveTransparency; 	// Preserve Transparency
 uniform int 	iInvertAlpha;			// Used to keep background rather than foreground
 uniform float3 	iResolution;      		// Viewport resolution (pixels)
 uniform float3 	iImage1Resolution;		// iImage1 resolution (pixels)
+uniform float3 	iImage2Resolution;		// iImage1 resolution (pixels)
 uniform shader 	iImage1;          		// An input image.
 uniform shader 	iImage2;          		// An input image.
+uniform int 	iImage1Valid;			// Has Image1 been passed?
+uniform int 	iImage2Valid;			// Has Image2 been passed?
 
 float3 rgb2yuv(float3 rgb){
     float y = 0.299*rgb.r + 0.587*rgb.g + 0.114*rgb.b;
@@ -28,47 +31,57 @@ float3 yuv2rgb(float3 yuv){
 float4 main( in float2 fragCoord )
 {
 
-	bool iInvertAlpha = (iInvertAlpha != 0);
-	bool bOriginalColors = (iOriginalColors != 0);
-	bool bPreserveTransparency = (iPreserveTransparency != 0);
+	float4 styled = float4(0, 0, 0, 0);
 	
-    float vscale = iImage1Resolution.y / iResolution.y;
-    float hscale = iImage1Resolution.x / iResolution.x;
+	if(iImage1Valid == 1) {
+		bool iInvertAlpha = (iInvertAlpha != 0);
+		bool bOriginalColors = (iOriginalColors != 0);
+		bool bPreserveTransparency = (iPreserveTransparency != 0);
 		
-	float fit_scale = max(vscale, hscale);
-	
-	if(fit_scale < 1) fit_scale = 1;
-	
-	float2 scale_to_fit = float2(fit_scale, fit_scale);
-	
-    // Get the original color of the pixel
-    float4 styled = iImage1.eval(fragCoord * scale_to_fit).rgba;
+		float vscale = iImage1Resolution.y / iResolution.y;
+		float hscale = iImage1Resolution.x / iResolution.x;
+		float fit_scale = max(vscale, hscale);
+		if(fit_scale < 1) fit_scale = 1;
+		float2 scale_to_fit = float2(fit_scale, fit_scale);
+		
+		styled = iImage1.eval(fragCoord * scale_to_fit).rgba;
 
-	float4 original = iImage2.eval(fragCoord * scale_to_fit).rgba;
-	if(iInvertAlpha) {
-		original.a = 1 - original.a;
-	}
+		if(iImage2Valid == 1) {
+			float4 original = iImage2.eval(fragCoord * scale_to_fit).rgba;
+			if(iInvertAlpha) {
+				original.a = 1 - original.a;
+			}
 
-	if(bOriginalColors) {
-		
-		float3 styled_yuv = rgb2yuv(styled.rgb);
-		float3 original_yuv = rgb2yuv(original.rgb);
-		
-		float3 preserved_yuv = float3((styled_yuv.x * fStyleWeight) + ((1-fStyleWeight) * original_yuv.x), original_yuv.yz);
-		
-		styled = float4(yuv2rgb(preserved_yuv), 1);
+			if(bOriginalColors) {
+				
+				float3 styled_yuv = rgb2yuv(styled.rgb);
+				float3 original_yuv = rgb2yuv(original.rgb);
+				
+				float3 preserved_yuv = float3((styled_yuv.x * fStyleWeight) + ((1-fStyleWeight) * original_yuv.x), original_yuv.yz);
+				
+				styled = float4(yuv2rgb(preserved_yuv), 1);
+			} else {
+				styled = float4((styled.rgb * fStyleWeight) + ((1-fStyleWeight) * original.rgb), 1);
+			}
+			
+			if(bPreserveTransparency) {
+				if(original.a > fAlphaThreshold) {
+					styled = float4(styled.rgb, original.a);
+				} else {
+					styled = float4(0, 0, 0, 0);
+				}
+			}
+		}
 	} else {
-		styled = float4((styled.rgb * fStyleWeight) + ((1-fStyleWeight) * original.rgb), 1);
-	}
-	
-	if(bPreserveTransparency) {
-		if(original.a > fAlphaThreshold) {
-			styled = float4(styled.rgb, original.a);
-		} else {
-			styled = float4(0, 0, 0, 0);
+		if(iImage2Valid == 1) {
+			float vscale = iImage2Resolution.y / iResolution.y;
+			float hscale = iImage2Resolution.x / iResolution.x;
+			float fit_scale = max(vscale, hscale);
+			if(fit_scale < 1) fit_scale = 1;
+			float2 scale_to_fit = float2(fit_scale, fit_scale);
+			styled = iImage2.eval(fragCoord * scale_to_fit).rgba;
 		}
 	}
-
 	return( styled );
 }
 

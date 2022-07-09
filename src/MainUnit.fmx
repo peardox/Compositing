@@ -10,7 +10,6 @@ object frmShaderView: TfrmShaderView
   FormFactor.Height = 480
   FormFactor.Devices = [Desktop]
   OnCreate = FormCreate
-  OnResize = FormResize
   DesignerMasterStyle = 0
   object pnlToolBox: TPanel
     Align = Bottom
@@ -28,6 +27,7 @@ object frmShaderView: TfrmShaderView
       Size.PlatformDefault = False
       TabOrder = 0
       Text = 'Use Original Colours'
+      OnChange = CheckBox1Change
     end
     object CheckBox2: TCheckBox
       IsChecked = True
@@ -38,6 +38,7 @@ object frmShaderView: TfrmShaderView
       Size.PlatformDefault = False
       TabOrder = 2
       Text = 'Preserve Transparency'
+      OnChange = CheckBox2Change
     end
     object Label1: TLabel
       AutoSize = True
@@ -136,6 +137,28 @@ object frmShaderView: TfrmShaderView
       Size.PlatformDefault = False
       TabOrder = 1
       Text = 'Invert Alpha'
+      OnChange = CheckBox3Change
+    end
+    object CheckBox4: TCheckBox
+      Position.X = 736.000000000000000000
+      Position.Y = 40.000000000000000000
+      TabOrder = 16
+      Text = 'Enable Grid'
+      OnChange = CheckBox4Change
+    end
+    object CheckBox5: TCheckBox
+      Position.X = 736.000000000000000000
+      Position.Y = 8.000000000000000000
+      TabOrder = 15
+      Text = 'Enable Layer 1'
+      OnChange = CheckBox5Change
+    end
+    object CheckBox6: TCheckBox
+      Position.X = 736.000000000000000000
+      Position.Y = 24.000000000000000000
+      TabOrder = 14
+      Text = 'Enable Layer 2'
+      OnChange = CheckBox6Change
     end
   end
   object pnlContainer: TPanel
@@ -144,23 +167,76 @@ object frmShaderView: TfrmShaderView
     Size.Height = 530.000000000000000000
     Size.PlatformDefault = False
     TabOrder = 1
-    object pnlImages: TPanel
-      Position.X = 50.000000000000000000
-      Position.Y = 50.000000000000000000
-      Size.Width = 256.000000000000000000
-      Size.Height = 256.000000000000000000
+    object VertScrollBox1: TVertScrollBox
+      Align = Right
+      Position.X = 872.000000000000000000
+      Size.Width = 151.000000000000000000
+      Size.Height = 530.000000000000000000
       Size.PlatformDefault = False
-      TabOrder = 0
-      object skpbGrid: TSkPaintBox
-        Position.X = 206.000000000000000000
-        Position.Y = 206.000000000000000000
-        OnDraw = skpbGridDraw
+      TabOrder = 1
+      Viewport.Width = 151.000000000000000000
+      Viewport.Height = 530.000000000000000000
+      object Label7: TLabel
+        Position.X = 24.000000000000000000
+        Position.Y = 104.000000000000000000
+        Text = 'Label7'
+        TabOrder = 5
       end
-      object skpbLayer: TSkPaintBox
-        Position.X = 206.000000000000000000
-        Position.Y = 80.000000000000000000
-        OnDraw = skpbLayerDraw
+      object Label8: TLabel
+        Position.X = 23.000000000000000000
+        Position.Y = 128.000000000000000000
+        Text = 'Label7'
+        TabOrder = 4
       end
+      object Label11: TLabel
+        Position.X = 23.000000000000000000
+        Position.Y = 352.000000000000000000
+        Text = 'Label7'
+        TabOrder = 8
+      end
+      object Label12: TLabel
+        Position.X = 23.000000000000000000
+        Position.Y = 376.000000000000000000
+        Text = 'Label7'
+        TabOrder = 2
+      end
+      object Label9: TLabel
+        Position.X = 23.000000000000000000
+        Position.Y = 232.000000000000000000
+        Text = 'Label7'
+        TabOrder = 7
+      end
+      object Label10: TLabel
+        Position.X = 23.000000000000000000
+        Position.Y = 256.000000000000000000
+        Text = 'Label7'
+        TabOrder = 1
+      end
+      object Label13: TLabel
+        Position.X = 23.000000000000000000
+        Position.Y = 152.000000000000000000
+        Text = 'Label7'
+        TabOrder = 3
+      end
+      object Label14: TLabel
+        Position.X = 23.000000000000000000
+        Position.Y = 280.000000000000000000
+        Text = 'Label7'
+        TabOrder = 6
+      end
+      object Label15: TLabel
+        Position.X = 23.000000000000000000
+        Position.Y = 304.000000000000000000
+        Text = 'Label7'
+        TabOrder = 0
+      end
+    end
+    object DrawSpace: TRectangle
+      Align = Client
+      Size.Width = 872.000000000000000000
+      Size.Height = 530.000000000000000000
+      Size.PlatformDefault = False
+      OnResize = DrawSpaceResize
     end
   end
   object OpenDialog1: TOpenDialog

@@ -7,7 +7,9 @@ uses
   FMX.Forms,
   FMX.Types,
   Skia.FMX,
-  MainUnit in 'MainUnit.pas' {frmShaderView};
+  MainUnit in 'MainUnit.pas' {frmShaderView},
+  FunctionLibrary in 'FunctionLibrary.pas',
+  Shaders in 'Shaders.pas';
 
 {$R *.res}
 
