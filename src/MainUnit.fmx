@@ -10,6 +10,7 @@ object frmShaderView: TfrmShaderView
   FormFactor.Height = 480
   FormFactor.Devices = [Desktop]
   OnCreate = FormCreate
+  OnPaint = FormPaint
   DesignerMasterStyle = 0
   object pnlToolBox: TPanel
     Align = Bottom
@@ -73,12 +74,11 @@ object frmShaderView: TfrmShaderView
       TabOrder = 7
     end
     object Label4: TLabel
-      Position.X = 872.000000000000000000
+      Position.X = 888.000000000000000000
       Position.Y = 24.000000000000000000
-      Size.Width = 81.000000000000000000
+      Size.Width = 320.000000000000000000
       Size.Height = 17.000000000000000000
       Size.PlatformDefault = False
-      TextSettings.HorzAlign = Center
       Text = 'Label4'
       TabOrder = 8
     end
@@ -160,6 +160,15 @@ object frmShaderView: TfrmShaderView
       Text = 'Enable Layer 2'
       OnChange = CheckBox6Change
     end
+    object Label19: TLabel
+      Align = Right
+      Position.X = 936.000000000000000000
+      Size.Width = 87.000000000000000000
+      Size.Height = 70.000000000000000000
+      Size.PlatformDefault = False
+      Text = 'Label19'
+      TabOrder = 18
+    end
   end
   object pnlContainer: TPanel
     Align = Client
@@ -180,31 +189,31 @@ object frmShaderView: TfrmShaderView
         Position.X = 24.000000000000000000
         Position.Y = 104.000000000000000000
         Text = 'Label7'
-        TabOrder = 5
+        TabOrder = 7
       end
       object Label8: TLabel
         Position.X = 23.000000000000000000
         Position.Y = 128.000000000000000000
         Text = 'Label7'
-        TabOrder = 4
+        TabOrder = 6
       end
       object Label11: TLabel
         Position.X = 23.000000000000000000
         Position.Y = 352.000000000000000000
         Text = 'Label7'
-        TabOrder = 8
+        TabOrder = 11
       end
       object Label12: TLabel
         Position.X = 23.000000000000000000
         Position.Y = 376.000000000000000000
         Text = 'Label7'
-        TabOrder = 2
+        TabOrder = 4
       end
       object Label9: TLabel
         Position.X = 23.000000000000000000
         Position.Y = 232.000000000000000000
         Text = 'Label7'
-        TabOrder = 7
+        TabOrder = 9
       end
       object Label10: TLabel
         Position.X = 23.000000000000000000
@@ -216,19 +225,37 @@ object frmShaderView: TfrmShaderView
         Position.X = 23.000000000000000000
         Position.Y = 152.000000000000000000
         Text = 'Label7'
-        TabOrder = 3
+        TabOrder = 5
       end
       object Label14: TLabel
         Position.X = 23.000000000000000000
         Position.Y = 280.000000000000000000
         Text = 'Label7'
-        TabOrder = 6
+        TabOrder = 8
       end
       object Label15: TLabel
         Position.X = 23.000000000000000000
         Position.Y = 304.000000000000000000
         Text = 'Label7'
         TabOrder = 0
+      end
+      object Label16: TLabel
+        Position.X = 23.000000000000000000
+        Position.Y = 424.000000000000000000
+        Text = 'Label7'
+        TabOrder = 10
+      end
+      object Label17: TLabel
+        Position.X = 23.000000000000000000
+        Position.Y = 448.000000000000000000
+        Text = 'Label7'
+        TabOrder = 3
+      end
+      object Label18: TLabel
+        Position.X = 23.000000000000000000
+        Position.Y = 488.000000000000000000
+        Text = 'Label7'
+        TabOrder = 2
       end
     end
     object DrawSpace: TRectangle
@@ -263,6 +290,7 @@ object frmShaderView: TfrmShaderView
         Locked = True
         ShortCut = 16467
         Text = '&Save Composite Image'
+        OnClick = SaveLayers
       end
       object MenuItem5: TMenuItem
         Locked = True
@@ -270,5 +298,9 @@ object frmShaderView: TfrmShaderView
         OnClick = MenuItem5Click
       end
     end
+  end
+  object SaveDialog1: TSaveDialog
+    Left = 728
+    Top = 32
   end
 end

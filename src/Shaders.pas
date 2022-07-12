@@ -43,13 +43,14 @@ type
 
   TLayerShader = class(TBaseShader)
   private
+    function AddTexture(var SkRuntimeEffect: ISkRuntimeEffect; const TextureIdentifier: String; const TextureFIle: String): Boolean;
+    procedure DoDraw(ASender: TObject; const ACanvas: ISkCanvas; const ADest: TRectF; const AOpacity: Single);
+  public
     ImWidth: Integer;
     ImHeight: Integer;
-    ImScale: Single;
-    function AddTexture(var SkRuntimeEffect: ISkRuntimeEffect; const TextureIdentifier: String; const TextureFIle: String): Integer;
-    procedure DoDraw(ASender: TObject; const ACanvas: ISkCanvas; const ADest: TRectF; const AOpacity: Single);
-    procedure FitToContainer;
-  public
+    fImScale: Single;
+    fImOffsetX: Integer;
+    fImOffsetY: Integer;
     fStyleWeight: Single;
     fAlphaThreshold: Single;
     iOriginalColors: Boolean;
@@ -57,6 +58,9 @@ type
     iInvertAlpha: Boolean;
     constructor Create(AOwner: TComponent); override;
     procedure AddShader(const ShaderFile, AImageFile1, AImageFile2: String);
+    procedure GetScaleInContainer;
+  published
+    property OnDraw;
   end;
 
 implementation
@@ -71,6 +75,7 @@ begin
   if Assigned(AOwner) then
     TFmxObject(AOwner).AddObject(Self);
   Fill.Color := TAlphaColors.Blue;
+  ClipChildren := True;
 end;
 
 procedure TAspectLayout.Resize;
@@ -175,6 +180,9 @@ end;
 constructor TLayerShader.Create(AOwner: TComponent);
 begin
   inherited Create(AOwner);
+  fImScale := 1;
+  fImOffsetX := 0;
+  fImOffsetY := 0;
   fStyleWeight := 1;
   fAlphaThreshold := 0.95;
   iOriginalColors := False;
@@ -182,33 +190,35 @@ begin
   iInvertAlpha := False;
 end;
 
-procedure TLayerShader.FitToContainer;
+procedure TLayerShader.GetScaleInContainer;
 var
   Scale: Single;
 begin
-  if Owner is TControl then
+  if Owner is TAspectLayout then
     begin
-      Scale := FitInsideContainer(TControl(Owner).Width, ImWidth,
-        TControl(Owner).Height, ImHeight);
+      Scale := FitInsideContainer(TAspectLayout(Owner).ChildMaxImWidth, ImWidth,
+        TAspectLayout(Owner).ChildMaxImWidth, ImHeight);
       if (Scale > 0) then
         begin
-          ImScale := Scale;
+
+          fImScale := Scale;
           Width := ImWidth * Scale;
           Height := ImHeight * Scale;
-          Position.X := Floor((TControl(Owner).Width - Width) / 2);
-          Position.Y := Floor((TControl(Owner).Height - Height) / 2);
+          Position.X := Floor((TAspectLayout(Owner).Width - Width) / 2);
+          Position.Y := Floor((TAspectLayout(Owner).Height - Height) / 2);
+
         end;
     end;
 end;
 
 function TLayerShader.AddTexture(var SkRuntimeEffect: ISkRuntimeEffect;
   const TextureIdentifier: String;
-  const TextureFile: String): Integer;
+  const TextureFile: String): Boolean;
 var
   ImImageInfo: TSkImageInfo;
-  HaveImage: Integer;
+  HaveImage: Boolean;
 begin
-  HaveImage := 0;
+  HaveImage := False;
 
   if FileExists(TextureFile) and SkRuntimeEffect.ChildExists(TextureIdentifier) then
   begin
@@ -216,7 +226,7 @@ begin
 
     if Assigned(TexImage) then
     begin
-      HaveImage := 1;
+      HaveImage := True;
       SkRuntimeEffect.ChildrenShaders[TextureIdentifier] := TexImage.MakeShader(TSKSamplingOptions.High);
       if SkRuntimeEffect.UniformExists(TextureIdentifier + 'Resolution') then
         case SkRuntimeEffect.UniformType[TextureIdentifier + 'Resolution'] of
@@ -254,7 +264,7 @@ end;
 
 procedure TLayerShader.AddShader(const ShaderFile, AImageFile1, AImageFile2: String);
 var
-  HaveImage: Integer;
+  HaveImage: Boolean;
 begin
   Enabled := False;
   ShaderText := LoadShader(ShaderFile);
@@ -265,13 +275,23 @@ begin
     raise Exception.Create(AErrorText);
 
   HaveImage := AddTexture(Effect, 'iImage1', AImageFile1);
-  if Effect.UniformExists('iImage1Valid') then
-    Effect.SetUniform('iImage1Valid', HaveImage);
-
+  if Effect.UniformExists('bImage1Valid') then
+    Effect.SetUniform('bImage1Valid', BoolToInt(HaveImage));
+{
+  if(haveImage > 0) then
+    showMessage('Got Image1')
+  else
+    showMessage('Missing Image1 ' + AImageFile1);
+}
   HaveImage := AddTexture(Effect, 'iImage2', AImageFile2);
-  if Effect.UniformExists('iImage2Valid') then
-    Effect.SetUniform('iImage2Valid', HaveImage);
-
+  if Effect.UniformExists('bImage2Valid') then
+    Effect.SetUniform('bImage2Valid', BoolToInt(HaveImage));
+{
+  if(haveImage > 0) then
+    showMessage('Got Image2')
+  else
+    showMessage('Missing Image2 ' + AImageFile2);
+}
   Painter := TSkPaint.Create;
   Painter.Shader := Effect.MakeShader(False);
   Enabled := True;
@@ -297,12 +317,21 @@ begin
     if Effect.UniformExists('fAlphaThreshold') then
       Effect.SetUniform('fAlphaThreshold', fAlphaThreshold);
 
-    if Effect.UniformExists('iOriginalColors') then
-      Effect.SetUniform('iOriginalColors', BoolToInt(iOriginalColors));
-    if Effect.UniformExists('iPreserveTransparency') then
-      Effect.SetUniform('iPreserveTransparency', BoolToInt(iPreserveTransparency));
-    if Effect.UniformExists('iInvertAlpha') then
-      Effect.SetUniform('iInvertAlpha', BoolToInt(iInvertAlpha));
+    if Effect.UniformExists('bOriginalColors') then
+      Effect.SetUniform('bOriginalColors', BoolToInt(iOriginalColors));
+    if Effect.UniformExists('bPreserveTransparency') then
+      Effect.SetUniform('bPreserveTransparency', BoolToInt(iPreserveTransparency));
+    if Effect.UniformExists('bInvertAlpha') then
+      Effect.SetUniform('bInvertAlpha', BoolToInt(iInvertAlpha));
+    if Effect.UniformExists('fImScale') then
+      begin
+        if fImScale > 0 then
+          Effect.SetUniform('fImScale', 1 / fImScale)
+        else
+          Effect.SetUniform('fImScale', 1);
+      end;
+    if Effect.UniformExists('fImOffset') then
+      Effect.SetUniform('fImOffset', TSkRuntimeEffectFloat2.Create(fImOffsetX * (1 / fImScale), fImOffsetY * (1 / fImScale)));
 
     ACanvas.DrawRect(ADest, Painter);
   end;
