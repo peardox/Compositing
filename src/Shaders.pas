@@ -6,8 +6,6 @@ uses
   System.Classes, System.Types, FMX.Types, FMX.Controls, FMX.Objects, FMX.Layouts, Skia, Skia.FMX;
 
 type
-  TGridStyle = (GridPixels, GridBlocks);
-
   TAspectLayout = class(TRectangle)
   public
     ChildMaxImWidth: Integer;
@@ -25,7 +23,6 @@ type
     ShaderText: String;
   public
     constructor Create(AOwner: TComponent); override;
-    procedure Resize; override;
   end;
 
   TGridShader = class(TBaseShader)
@@ -34,16 +31,14 @@ type
     procedure DoDraw(ASender: TObject; const ACanvas: ISkCanvas; const ADest: TRectF; const AOpacity: Single);
   public
     iGridSize: Integer;
-    iGridStyle: TGridStyle;
     cFront: TArray<Single>;
     cBack: TArray<Single>;
     constructor Create(AOwner: TComponent); override;
-    procedure AddShader(const ShaderFile: String);
+    procedure AddShader;
   end;
 
   TLayerShader = class(TBaseShader)
   private
-    function AddTexture(var SkRuntimeEffect: ISkRuntimeEffect; const TextureIdentifier: String; const TextureFIle: String): Boolean;
     procedure DoDraw(ASender: TObject; const ACanvas: ISkCanvas; const ADest: TRectF; const AOpacity: Single);
   public
     ImWidth: Integer;
@@ -57,8 +52,8 @@ type
     iPreserveTransparency: Boolean;
     iInvertAlpha: Boolean;
     constructor Create(AOwner: TComponent); override;
-    procedure AddShader(const ShaderFile, AImageFile1, AImageFile2: String);
-    procedure GetScaleInContainer;
+    procedure AddShader;
+    function AddTexture(const TextureIdentifier: String; const TextureFIle: String): Boolean;
   published
     property OnDraw;
   end;
@@ -76,6 +71,8 @@ begin
     TFmxObject(AOwner).AddObject(Self);
   Fill.Color := TAlphaColors.Blue;
   ClipChildren := True;
+  Width := 0;
+  Height := 0;
 end;
 
 procedure TAspectLayout.Resize;
@@ -87,7 +84,7 @@ procedure TAspectLayout.FitToContainer;
 var
   Scale: Single;
 begin
-  if Owner is TControl then
+  if Assigned(Owner) and (Owner is TControl) and (ChildMaxImWidth > 0) and (ChildMaxImHeight > 0) then
     begin
       Scale := FitInsideContainer(TControl(Owner).Width, ChildMaxImWidth,
         TControl(Owner).Height, ChildMaxImHeight);
@@ -111,26 +108,19 @@ begin
   Align := TAlignLayout.Client;
 end;
 
-procedure TBaseShader.Resize;
-begin
-//  Width := 192;
-//  Height := 240;
-end;
-
 constructor TGridShader.Create(AOwner: TComponent);
 begin
   inherited Create(AOwner);
-  iGridSize := 512;
-//  iGridStyle := GridPixels;
-  iGridStyle := GridBlocks;
+  iGridSize := 128;
   cBack := [0.333, 0.333, 0.333, 1];
   cFront := [0.666, 0.666, 0.666, 1];
+  AddShader;
 end;
 
-procedure TGridShader.AddShader(const ShaderFile: String);
+procedure TGridShader.AddShader;
 begin
   Enabled := False;
-  ShaderText := LoadShader(ShaderFile);
+  ShaderText := LoadShader(TPath.Combine(ShaderPath,'grid.sksl'));
 
   var AErrorText := '';
   Effect := TSkRuntimeEffect.MakeForShader(ShaderText, AErrorText);
@@ -139,7 +129,9 @@ begin
 
   Painter := TSkPaint.Create;
   Painter.Shader := Effect.MakeShader(True);
+
   OnDraw := DoDraw;
+
 end;
 
 procedure TGridShader.DoDraw(ASender: TObject; const ACanvas: ISkCanvas; const ADest: TRectF; const AOpacity: Single);
@@ -166,8 +158,6 @@ begin
     end;
     if Effect.UniformExists('iGridSize') then
       Effect.SetUniform('iGridSize', iGridSize ); // 64
-    if Effect.UniformExists('iGridStyle') then
-      Effect.SetUniform('iGridStyle', Ord(iGridStyle) ); // 0 = GridPixels, 1 = GridBlocks
     if Effect.UniformExists('cBack') then
       Effect.SetUniform('cBack', cBack); // [0.333, 0.333, 0.333, 1]
     if Effect.UniformExists('cFront') then
@@ -188,31 +178,10 @@ begin
   iOriginalColors := False;
   iPreserveTransparency := False;
   iInvertAlpha := False;
+  AddShader;
 end;
 
-procedure TLayerShader.GetScaleInContainer;
-var
-  Scale: Single;
-begin
-  if Owner is TAspectLayout then
-    begin
-      Scale := FitInsideContainer(TAspectLayout(Owner).ChildMaxImWidth, ImWidth,
-        TAspectLayout(Owner).ChildMaxImWidth, ImHeight);
-      if (Scale > 0) then
-        begin
-
-          fImScale := Scale;
-          Width := ImWidth * Scale;
-          Height := ImHeight * Scale;
-          Position.X := Floor((TAspectLayout(Owner).Width - Width) / 2);
-          Position.Y := Floor((TAspectLayout(Owner).Height - Height) / 2);
-
-        end;
-    end;
-end;
-
-function TLayerShader.AddTexture(var SkRuntimeEffect: ISkRuntimeEffect;
-  const TextureIdentifier: String;
+function TLayerShader.AddTexture(const TextureIdentifier: String;
   const TextureFile: String): Boolean;
 var
   ImImageInfo: TSkImageInfo;
@@ -220,24 +189,24 @@ var
 begin
   HaveImage := False;
 
-  if FileExists(TextureFile) and SkRuntimeEffect.ChildExists(TextureIdentifier) then
+  if FileExists(TextureFile) and Effect.ChildExists(TextureIdentifier) then
   begin
     var TexImage: ISkImage := TSkImage.MakeFromEncodedFile(TextureFile);
 
     if Assigned(TexImage) then
     begin
       HaveImage := True;
-      SkRuntimeEffect.ChildrenShaders[TextureIdentifier] := TexImage.MakeShader(TSKSamplingOptions.High);
-      if SkRuntimeEffect.UniformExists(TextureIdentifier + 'Resolution') then
-        case SkRuntimeEffect.UniformType[TextureIdentifier + 'Resolution'] of
+      Effect.ChildrenShaders[TextureIdentifier] := TexImage.MakeShader(TSKSamplingOptions.High);
+      if Effect.UniformExists(TextureIdentifier + 'Resolution') then
+        case Effect.UniformType[TextureIdentifier + 'Resolution'] of
           TSkRuntimeEffectUniformType.Float2:
-            SkRuntimeEffect.SetUniform(TextureIdentifier + 'Resolution', TSkRuntimeEffectFloat2.Create(TexImage.Width, TexImage.Height));
+            Effect.SetUniform(TextureIdentifier + 'Resolution', TSkRuntimeEffectFloat2.Create(TexImage.Width, TexImage.Height));
           TSkRuntimeEffectUniformType.Float3:
-            SkRuntimeEffect.SetUniform(TextureIdentifier + 'Resolution', TSkRuntimeEffectFloat3.Create(TexImage.Width, TexImage.Height, 0));
+            Effect.SetUniform(TextureIdentifier + 'Resolution', TSkRuntimeEffectFloat3.Create(TexImage.Width, TexImage.Height, 0));
           TSkRuntimeEffectUniformType.Int2:
-            SkRuntimeEffect.SetUniform(TextureIdentifier + 'Resolution', TSkRuntimeEffectInt2.Create(TexImage.Width, TexImage.Height));
+            Effect.SetUniform(TextureIdentifier + 'Resolution', TSkRuntimeEffectInt2.Create(TexImage.Width, TexImage.Height));
           TSkRuntimeEffectUniformType.Int3:
-            SkRuntimeEffect.SetUniform(TextureIdentifier + 'Resolution', TSkRuntimeEffectInt3.Create(TexImage.Width, TexImage.Height, 0));
+            Effect.SetUniform(TextureIdentifier + 'Resolution', TSkRuntimeEffectInt3.Create(TexImage.Width, TexImage.Height, 0));
         end;
 
       ImImageInfo := TexImage.ImageInfo;
@@ -257,44 +226,31 @@ begin
             end;
         end;
 
+    Painter := TSkPaint.Create;
+    Painter.Shader := Effect.MakeShader(False);
     end;
   end;
+  if Effect.UniformExists(TextureIdentifier + 'Valid') then
+    Effect.SetUniform(TextureIdentifier + 'Valid', BoolToInt(HaveImage));
   Result := HaveImage;
 end;
 
-procedure TLayerShader.AddShader(const ShaderFile, AImageFile1, AImageFile2: String);
-var
-  HaveImage: Boolean;
+procedure TLayerShader.AddShader;
 begin
   Enabled := False;
-  ShaderText := LoadShader(ShaderFile);
+  ShaderText := LoadShader(TPath.Combine(ShaderPath,'original_colors.sksl'));
 
   var AErrorText := '';
   Effect := TSkRuntimeEffect.MakeForShader(ShaderText, AErrorText);
   if AErrorText <> '' then
-    raise Exception.Create(AErrorText);
+    raise Exception.Create('Error creating shader : ' + AErrorText);
+  if Effect.UniformExists('iImage1Valid') then
+    Effect.SetUniform('iImage1Valid', BoolToInt(False));
+  if Effect.UniformExists('iImage2Valid') then
+    Effect.SetUniform('iImage2Valid', BoolToInt(False));
 
-  HaveImage := AddTexture(Effect, 'iImage1', AImageFile1);
-  if Effect.UniformExists('bImage1Valid') then
-    Effect.SetUniform('bImage1Valid', BoolToInt(HaveImage));
-{
-  if(haveImage > 0) then
-    showMessage('Got Image1')
-  else
-    showMessage('Missing Image1 ' + AImageFile1);
-}
-  HaveImage := AddTexture(Effect, 'iImage2', AImageFile2);
-  if Effect.UniformExists('bImage2Valid') then
-    Effect.SetUniform('bImage2Valid', BoolToInt(HaveImage));
-{
-  if(haveImage > 0) then
-    showMessage('Got Image2')
-  else
-    showMessage('Missing Image2 ' + AImageFile2);
-}
-  Painter := TSkPaint.Create;
-  Painter.Shader := Effect.MakeShader(False);
   Enabled := True;
+
   OnDraw := DoDraw;
 end;
 

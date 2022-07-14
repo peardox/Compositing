@@ -54,6 +54,7 @@ type
     SaveDialog1: TSaveDialog;
     Label18: TLabel;
     Label19: TLabel;
+    ComboBox1: TComboBox;
 
     procedure FormCreate(Sender: TObject);
     procedure TrackBar1Change(Sender: TObject);
@@ -70,8 +71,10 @@ type
     procedure SaveLayers(Sender: TObject);
     procedure FormPaint(Sender: TObject; Canvas: TCanvas; const ARect: TRectF);
   private
+    FSaveInNextPaint: Boolean;
     FPaintCount: Int64;
     FstopWatch: TDateTime;
+    procedure DoSaveLayers;
   public
     { Public declarations }
     Grid: TGridShader;
@@ -96,27 +99,27 @@ const
 
 procedure TfrmShaderView.CheckBox1Change(Sender: TObject);
 begin
-  if Assigned(Layer) and (CheckBox5.IsChecked) and not (CheckBox6.IsChecked) then
+  if Assigned(Layer) and (ComboBox1.ItemIndex = 0) then
     Layer.iOriginalColors := CheckBox1.IsChecked;
-  if Assigned(Layer2) and not (CheckBox5.IsChecked) and (CheckBox6.IsChecked) then
+  if Assigned(Layer2) and (ComboBox1.ItemIndex = 1) then
     Layer2.iOriginalColors := CheckBox1.IsChecked;
   ShowInfo;
 end;
 
 procedure TfrmShaderView.CheckBox2Change(Sender: TObject);
 begin
-  if Assigned(Layer) and (CheckBox5.IsChecked) and not (CheckBox6.IsChecked) then
+  if Assigned(Layer) and (ComboBox1.ItemIndex = 0) then
     Layer.iPreserveTransparency := CheckBox2.IsChecked;
-  if Assigned(Layer2) and not (CheckBox5.IsChecked) and (CheckBox6.IsChecked) then
+  if Assigned(Layer2) and (ComboBox1.ItemIndex = 1) then
     Layer2.iPreserveTransparency := CheckBox2.IsChecked;
   ShowInfo;
 end;
 
 procedure TfrmShaderView.CheckBox3Change(Sender: TObject);
 begin
-  if Assigned(Layer) and (CheckBox5.IsChecked) and not (CheckBox6.IsChecked) then
+  if Assigned(Layer) and (ComboBox1.ItemIndex = 0) then
     Layer.iInvertAlpha := CheckBox3.IsChecked;
-  if Assigned(Layer2)  and not (CheckBox5.IsChecked) and (CheckBox6.IsChecked) then
+  if Assigned(Layer2) and (ComboBox1.ItemIndex = 1) then
     Layer2.iInvertAlpha := CheckBox3.IsChecked;
   ShowInfo;
 end;
@@ -145,9 +148,9 @@ end;
 procedure TfrmShaderView.TrackBar1Change(Sender: TObject);
 begin
   Label5.Text := FormatFloat('0.00', (TrackBar1.Value / TrackBar1.Max) * 100);
-  if Assigned(Layer) and (CheckBox5.IsChecked) and (not CheckBox6.IsChecked) then
+  if Assigned(Layer) and (ComboBox1.ItemIndex = 0) then
     Layer.fStyleWeight := (TrackBar1.Value / TrackBar1.Max);
-  if Assigned(Layer2) and (not CheckBox5.IsChecked) and (CheckBox6.IsChecked) then
+  if Assigned(Layer2) and (ComboBox1.ItemIndex = 1) then
     Layer2.fStyleWeight := (TrackBar1.Value / TrackBar1.Max);
   ShowInfo;
 end;
@@ -155,9 +158,9 @@ end;
 procedure TfrmShaderView.TrackBar2Change(Sender: TObject);
 begin
   Label6.Text := FormatFloat('0.00', (TrackBar2.Value / TrackBar2.Max) * 100);
-  if Assigned(Layer) and (CheckBox5.IsChecked) and not (CheckBox6.IsChecked) then
+  if Assigned(Layer) and (ComboBox1.ItemIndex = 0) then
     Layer.fAlphaThreshold := (TrackBar2.Value / TrackBar2.Max);
-  if Assigned(Layer2) and not (CheckBox5.IsChecked) and (CheckBox6.IsChecked) then
+  if Assigned(Layer2) and (ComboBox1.ItemIndex = 1) then
     Layer2.fAlphaThreshold := (TrackBar2.Value / TrackBar2.Max);
   ShowInfo;
 end;
@@ -180,49 +183,37 @@ begin
       DrawSpace.Scale.Y := 1;
 
 
-      CheckBox1.IsChecked := False;
-      CheckBox2.IsChecked := True;
-      CheckBox3.IsChecked := False;
-      CheckBox4.IsChecked := True;
-      CheckBox5.IsChecked := True;
-      CheckBox6.IsChecked := True;
-      TrackBar1.Value := TrackBar1.Max;
-      TrackBar2.Value := TrackBar2.Max * 0.95;
+      CheckBox1.IsChecked := False; // Original Colours
+      CheckBox2.IsChecked := False; // Preserve Transparency
+      CheckBox3.IsChecked := False; // Invert Transparency
+      CheckBox4.IsChecked := True;  // Show Grid
+      CheckBox5.IsChecked := False;  // Show Layer 1
+      CheckBox6.IsChecked := False;  // Show Layer 2
+      TrackBar1.Value := TrackBar1.Max; // Style Weight
+      TrackBar2.Value := TrackBar2.Max * 0.95;  // Transparency Threshold
 
       Container := TAspectLayout.Create(DrawSpace);
 
       Grid := TGridShader.Create(Container);
-      Grid.iGridSize := 64;
-      Grid.AddShader(TPath.Combine(ShaderPath,'grid.sksl'));
+
 
       Layer := TLayerShader.Create(Container);
-      Layer.iOriginalColors := CheckBox1.IsChecked;
-      Layer.iPreserveTransparency := CheckBox2.IsChecked;
-      Layer.iInvertAlpha := CheckBox3.IsChecked;
-      Layer.AddShader(TPath.Combine(ShaderPath,'original_colors.sksl'),
-        TPath.Combine(MediaPath, 'digiman.jpg'),
-        TPath.Combine(MediaPath, 'digitalman_rembg.png'));
-
+//      Layer.AddTexture('iImage1', TPath.Combine(MediaPath, 'haywain-wall.jpg'));
+      Layer.AddTexture('iImage2', TPath.Combine(MediaPath, 'haywain.jpg'));
+      CheckBox5.IsChecked := True;  // Show Layer 1
+//      Layer.Visible := False;
+{
       Layer2 := TLayerShader.Create(Container);
-      Layer2.iOriginalColors := False;
-      Layer2.iPreserveTransparency := True;
-      Layer2.iInvertAlpha := False;
-      Layer2.AddShader(TPath.Combine(ShaderPath,'original_colors.sksl'),
-        TPath.Combine(MediaPath, 'fermin-6.jpg'),
-        TPath.Combine(MediaPath, 'fermin-rembg.png'));
-
-
+      Layer2.AddTexture('iImage1', TPath.Combine(MediaPath, 'fermin-6.jpg'));
+      Layer2.AddTexture('iImage2', TPath.Combine(MediaPath, 'fermin-rembg.png'));
+      Layer2.Visible := False;
+}
+{
       Layer2.fImScale := 0.625;
       Layer.fImScale := 1;
       Layer.fImOffsetX := 0;
       Layer.fImOffsetY := 1000;
-
-        {
-      Container.FitToContainer;
-      Container.Width := 408;
-      Container.Height := 510;
 }
-
       MenuItem5.ShortCut := TextToShortCut('Alt+X');
     end;
 end;
@@ -230,6 +221,8 @@ end;
 procedure TfrmShaderView.FormPaint(Sender: TObject; Canvas: TCanvas;
   const ARect: TRectF);
 begin
+  if FSaveInNextPaint then
+    DoSaveLayers;
   if FPaintCount = 0 then
   begin
     FstopWatch := now;
@@ -243,9 +236,9 @@ procedure TfrmShaderView.ShowInfo;
 begin
   if Assigned(Layer) then
     begin
-      if Assigned(Layer) and (CheckBox5.IsChecked) and not (CheckBox6.IsChecked) then
+      if Assigned(Layer) and (ComboBox1.ItemIndex = 0) then
         Label4.Text := IntToStr(Layer.ImWidth) + ' x ' + IntToStr(Layer.ImHeight)
-      else if Assigned(Layer2) and not (CheckBox5.IsChecked) and (CheckBox6.IsChecked) then
+      else if Assigned(Layer2) and (ComboBox1.ItemIndex = 1) then
         Label4.Text := IntToStr(Layer2.ImWidth) + ' x ' + IntToStr(Layer2.ImHeight)
       else
         Label4.Text := '';
@@ -261,9 +254,11 @@ begin
 
       Label11.Text := 'L Width = ' + FloatToStr(DrawSpace.Width);
       Label12.Text := 'L Height = ' + FloatToStr(DrawSpace.Height);
-
-      Label16.Text := 'L2 X = ' + FloatToStr(Layer2.Position.X);
-      Label17.Text := 'L2 Y = ' + FloatToStr(Layer2.Position.Y);
+      if Assigned(Layer2) then
+        begin
+          Label16.Text := 'L2 X = ' + FloatToStr(Layer2.Position.X);
+          Label17.Text := 'L2 Y = ' + FloatToStr(Layer2.Position.Y);
+        end;
 
       Label18.Text := 'Layers = ' + IntToStr(Container.ChildrenCount);
     end;
@@ -279,46 +274,56 @@ begin
 end;
 
 procedure TfrmShaderView.SaveLayers(Sender: TObject);
+begin
+  if SaveDialog1.Execute then
+  begin
+{$IFDEF GPURASTERISER}
+    FSaveInNextPaint := True;
+    Invalidate;
+{$ELSE}
+    DoSaveLayers;
+{$ENDIF}
+  end;
+end;
+
+procedure TfrmShaderView.DoSaveLayers;
 var
   AWidth, AHeight: Integer;
   LSurface: ISkSurface;
   Elapsed: Cardinal;
   Seconds: Double;
 begin
+  FSaveInNextPaint := False;
 
-  if SaveDialog1.Execute then
-    begin
+  AWidth := Container.ChildMaxImWidth;
+  AHeight := Container.ChildMaxImHeight;
 
-      AWidth := Container.ChildMaxImWidth;
-      AHeight := Container.ChildMaxImHeight;
+  {$IFDEF GPURASTERISER}
+  if (Self.Canvas is TGrCanvasCustom) and Assigned(TGrCanvasCustom(Self.Canvas).Context) then
+    LSurface := TSkSurface.MakeRenderTarget(TGrCanvasCustom(Self.Canvas).Context, False, TSkImageInfo.Create(AWidth, AHeight))
+  else
+    LSurface := TSkSurface.MakeRaster(AWidth, AHeight);
+  LSurface.Canvas.Clear(TAlphaColors.Null);
+  {$ELSE}
+  LSurface := TSkSurface.MakeRaster(AWidth, AHeight);
+  LSurface.Canvas.Clear(TAlphaColors.Null);
+  {$ENDIF}
+  Elapsed := TThread.GetTickCount;
 
-{$IFDEF GPURASTERISER}
-      if (Self.Canvas is TGrCanvasCustom) and Assigned(TGrCanvasCustom(Self.Canvas).Context) then
-        LSurface := TSkSurface.MakeRenderTarget(TGrCanvasCustom(Self.Canvas).Context, False, TSkImageInfo.Create(AWidth, AHeight))
-      else
-        LSurface := TSkSurface.MakeRaster(AWidth, AHeight);
-      LSurface.Canvas.Clear(TAlphaColors.Null);
-{$ELSE}
-      LSurface := TSkSurface.MakeRaster(AWidth, AHeight);
-      LSurface.Canvas.Clear(TAlphaColors.Null);
-{$ENDIF}
-      Elapsed := TThread.GetTickCount;
+  if Assigned(Layer.OnDraw) then
+    Layer.OnDraw(Layer, LSurface.Canvas, RectF(0, 0, AWidth, AHeight), 1);
 
-      if Assigned(Layer.OnDraw) then
-        Layer.OnDraw(Layer, LSurface.Canvas, RectF(0, 0, AWidth, AHeight), 1);
+  if Assigned(Layer2.OnDraw) then
+    Layer2.OnDraw(Layer2, LSurface.Canvas, RectF(0, 0, AWidth, AHeight), 1);
 
-      if Assigned(Layer2.OnDraw) then
-        Layer2.OnDraw(Layer2, LSurface.Canvas, RectF(0, 0, AWidth, AHeight), 1);
+  LSurface.MakeImageSnapshot.EncodeToFile(SaveDialog1.FileName);
 
-      LSurface.MakeImageSnapshot.EncodeToFile(SaveDialog1.FileName);
+  Elapsed := TThread.GetTickCount - Elapsed;
+  Seconds := Elapsed / 1000;
 
-      Elapsed := TThread.GetTickCount - Elapsed;
-      Seconds := Elapsed / 1000;
-
-      Label4.Text := 'T = ' + FloatToStr(Seconds);
-      ShowMessage('T = ' + FloatToStr(Seconds));
-      FPaintCount := 0;
-    end;
+  Label4.Text := 'T = ' + FloatToStr(Seconds);
+  ShowMessage('T = ' + FloatToStr(Seconds));
+  FPaintCount := 0;
 
 end;
 

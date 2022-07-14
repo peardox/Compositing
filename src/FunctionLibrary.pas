@@ -27,7 +27,6 @@ begin
   Result := 0;
   if AValue then
     Result := 1;
-
 end;
 
 function ShaderPath: string;

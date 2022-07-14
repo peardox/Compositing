@@ -169,6 +169,15 @@ object frmShaderView: TfrmShaderView
       Text = 'Label19'
       TabOrder = 18
     end
+    object ComboBox1: TComboBox
+      Items.Strings = (
+        'Image1'
+        'Image2')
+      ItemIndex = 0
+      Position.X = 552.000000000000000000
+      Position.Y = 8.000000000000000000
+      TabOrder = 20
+    end
   end
   object pnlContainer: TPanel
     Align = Client

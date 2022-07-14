@@ -8,8 +8,8 @@ uniform float3 	iImage1Resolution;		// iImage1 resolution (pixels)
 uniform float3 	iImage2Resolution;		// iImage1 resolution (pixels)
 uniform shader 	iImage1;          		// An input image.
 uniform shader 	iImage2;          		// An input image.
-uniform int 	bImage1Valid;			// Has Image1 been passed?
-uniform int 	bImage2Valid;			// Has Image2 been passed?
+uniform int 	iImage1Valid;			// Has Image1 been passed?
+uniform int 	iImage2Valid;			// Has Image2 been passed?
 uniform float 	fImScale;				// Image Scale
 uniform float2	fImOffset;				// Image Offset
 
@@ -50,14 +50,13 @@ float3 hsv2rgb(float3 c)
 
 float4 main( in float2 fragCoord )
 {
-	bool bImage1Valid = (bImage1Valid != 0);
-	bool bImage2Valid = (bImage2Valid != 0);
-	bool bPreventOverflow = true;
+	bool iImage1Valid = (iImage1Valid != 0);
+	bool iImage2Valid = (iImage2Valid != 0);
 	int iColorModel = 0; // 0 = YUV, 1 = HSV
 	
 	float4 styled = float4(0, 0, 0, 0);
 	
-	if(bImage1Valid) {
+	if(iImage1Valid) {
 		bool bInvertAlpha = (bInvertAlpha != 0);
 		bool bOriginalColors = (bOriginalColors != 0);
 		bool bPreserveTransparency = (bPreserveTransparency != 0);
@@ -80,7 +79,7 @@ float4 main( in float2 fragCoord )
 		
 		styled = iImage1.eval(im1loc).rgba;
 
-		if(bImage2Valid) {
+		if(iImage2Valid) {
 			float4 original = iImage2.eval(im1loc).rgba;
 			if(bInvertAlpha) {
 				original.a = 1 - original.a;
@@ -115,15 +114,15 @@ float4 main( in float2 fragCoord )
 			}
 		}
 	} else {
-		if(bImage2Valid) {
+		if(iImage2Valid) {
 			float vscale = iImage2Resolution.y / iResolution.y;
 			float hscale = iImage2Resolution.x / iResolution.x;
 			float fit_scale = max(vscale, hscale);
 			if(fit_scale < 1) fit_scale = 1;
 			float2 scale_to_fit = float2(fit_scale, fit_scale);
-			float2 im2loc = (fragCoord * scale_to_fit * fImScale) + fImOffset;
+			float2 im2loc = (fragCoord * scale_to_fit * fImScale) - fImOffset;
 
-			if(any(greaterThan(im2loc, iImage1Resolution.xy))) {
+			if(any(greaterThan(im2loc, iImage2Resolution.xy))) {
 				return float4(0, 0, 0, 0);
 			}
 			if(any(lessThan(im2loc, float2(0, 0)))) {

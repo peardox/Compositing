@@ -15,7 +15,7 @@ uses
 
 begin
   GlobalUseSkia := True;
-
+  ReportMemoryLeaksOnShutdown := True;
   //For macOS/iOS
   GlobalUseMetal := True;
 
