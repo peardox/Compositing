@@ -198,15 +198,13 @@ begin
 
 
       Layer := TLayerShader.Create(Container);
-//      Layer.AddTexture('iImage1', TPath.Combine(MediaPath, 'haywain-wall.jpg'));
-      Layer.AddTexture('iImage2', TPath.Combine(MediaPath, 'haywain.jpg'));
+      Layer.AddTexture('Styled', TPath.Combine(MediaPath, 'haywain-wall.jpg'));
+      Layer.AddTexture('Original', TPath.Combine(MediaPath, 'haywain.jpg'));
       CheckBox5.IsChecked := True;  // Show Layer 1
-//      Layer.Visible := False;
 {
       Layer2 := TLayerShader.Create(Container);
-      Layer2.AddTexture('iImage1', TPath.Combine(MediaPath, 'fermin-6.jpg'));
-      Layer2.AddTexture('iImage2', TPath.Combine(MediaPath, 'fermin-rembg.png'));
-      Layer2.Visible := False;
+      Layer2.AddTexture('Styled', TPath.Combine(MediaPath, 'fermin-6.jpg'));
+      Layer2.AddTexture('Original', TPath.Combine(MediaPath, 'fermin-rembg.png'));
 }
 {
       Layer2.fImScale := 0.625;

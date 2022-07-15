@@ -4,12 +4,12 @@ uniform int 	bOriginalColors;		// Use Original Colours
 uniform int 	bPreserveTransparency; 	// Preserve Transparency
 uniform int 	bInvertAlpha;			// Used to keep background rather than foreground
 uniform float3 	iResolution;      		// Viewport resolution (pixels)
-uniform float3 	iImage1Resolution;		// iImage1 resolution (pixels)
-uniform float3 	iImage2Resolution;		// iImage1 resolution (pixels)
-uniform shader 	iImage1;          		// An input image.
-uniform shader 	iImage2;          		// An input image.
-uniform int 	iImage1Valid;			// Has Image1 been passed?
-uniform int 	iImage2Valid;			// Has Image2 been passed?
+uniform float3 	StyledResolution;		// Styled resolution (pixels)
+uniform float3 	OriginalResolution;		// Styled resolution (pixels)
+uniform shader 	Styled;          		// An input image.
+uniform shader 	Original;          		// An input image.
+uniform int 	StyledValid;			// Has Image1 been passed?
+uniform int 	OriginalValid;			// Has Image2 been passed?
 uniform float 	fImScale;				// Image Scale
 uniform float2	fImOffset;				// Image Offset
 
@@ -50,19 +50,19 @@ float3 hsv2rgb(float3 c)
 
 float4 main( in float2 fragCoord )
 {
-	bool iImage1Valid = (iImage1Valid != 0);
-	bool iImage2Valid = (iImage2Valid != 0);
+	bool StyledValid = (StyledValid != 0);
+	bool OriginalValid = (OriginalValid != 0);
 	int iColorModel = 0; // 0 = YUV, 1 = HSV
 	
 	float4 styled = float4(0, 0, 0, 0);
 	
-	if(iImage1Valid) {
+	if(StyledValid) {
 		bool bInvertAlpha = (bInvertAlpha != 0);
 		bool bOriginalColors = (bOriginalColors != 0);
 		bool bPreserveTransparency = (bPreserveTransparency != 0);
 		
-		float vscale = iImage1Resolution.y / iResolution.y;
-		float hscale = iImage1Resolution.x / iResolution.x;
+		float vscale = StyledResolution.y / iResolution.y;
+		float hscale = StyledResolution.x / iResolution.x;
 		float fit_scale = max(vscale, hscale);
 		if(fit_scale < 1) fit_scale = 1;
 		float2 scale_to_fit = float2(fit_scale, fit_scale);
@@ -70,17 +70,17 @@ float4 main( in float2 fragCoord )
 		float2 im1loc = (fragCoord * scale_to_fit * fImScale);
 		im1loc -= fImOffset;
 
-		if(any(greaterThan(im1loc, iImage1Resolution.xy))) {
+		if(any(greaterThan(im1loc, StyledResolution.xy))) {
 			return float4(0, 0, 0, 0);
 		}
 		if(any(lessThan(im1loc, float2(0, 0)))) {
 			return float4(0, 0, 0, 0);
 		}
 		
-		styled = iImage1.eval(im1loc).rgba;
+		styled = Styled.eval(im1loc).rgba;
 
-		if(iImage2Valid) {
-			float4 original = iImage2.eval(im1loc).rgba;
+		if(OriginalValid) {
+			float4 original = Original.eval(im1loc).rgba;
 			if(bInvertAlpha) {
 				original.a = 1 - original.a;
 			}
@@ -114,21 +114,21 @@ float4 main( in float2 fragCoord )
 			}
 		}
 	} else {
-		if(iImage2Valid) {
-			float vscale = iImage2Resolution.y / iResolution.y;
-			float hscale = iImage2Resolution.x / iResolution.x;
+		if(OriginalValid) {
+			float vscale = OriginalResolution.y / iResolution.y;
+			float hscale = OriginalResolution.x / iResolution.x;
 			float fit_scale = max(vscale, hscale);
 			if(fit_scale < 1) fit_scale = 1;
 			float2 scale_to_fit = float2(fit_scale, fit_scale);
 			float2 im2loc = (fragCoord * scale_to_fit * fImScale) - fImOffset;
 
-			if(any(greaterThan(im2loc, iImage2Resolution.xy))) {
+			if(any(greaterThan(im2loc, OriginalResolution.xy))) {
 				return float4(0, 0, 0, 0);
 			}
 			if(any(lessThan(im2loc, float2(0, 0)))) {
 				return float4(0, 0, 0, 0);
 			}
-			styled = iImage2.eval(im2loc).rgba;
+			styled = Original.eval(im2loc).rgba;
 		}
 	}
 	

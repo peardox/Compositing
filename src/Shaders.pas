@@ -244,10 +244,10 @@ begin
   Effect := TSkRuntimeEffect.MakeForShader(ShaderText, AErrorText);
   if AErrorText <> '' then
     raise Exception.Create('Error creating shader : ' + AErrorText);
-  if Effect.UniformExists('iImage1Valid') then
-    Effect.SetUniform('iImage1Valid', BoolToInt(False));
-  if Effect.UniformExists('iImage2Valid') then
-    Effect.SetUniform('iImage2Valid', BoolToInt(False));
+  if Effect.UniformExists('StyledValid') then
+    Effect.SetUniform('StyledValid', BoolToInt(False));
+  if Effect.UniformExists('OriginalValid') then
+    Effect.SetUniform('OriginalValid', BoolToInt(False));
 
   Enabled := True;
 
