@@ -52,15 +52,14 @@ float4 main( in float2 fragCoord )
 {
 	bool StyledValid = (StyledValid != 0);
 	bool OriginalValid = (OriginalValid != 0);
+	bool bInvertAlpha = (bInvertAlpha != 0);
+	bool bOriginalColors = (bOriginalColors != 0);
+	bool bPreserveTransparency = (bPreserveTransparency != 0);
 	int iColorModel = 0; // 0 = YUV, 1 = HSV
 	
 	float4 styled = float4(0, 0, 0, 0);
 	
 	if(StyledValid) {
-		bool bInvertAlpha = (bInvertAlpha != 0);
-		bool bOriginalColors = (bOriginalColors != 0);
-		bool bPreserveTransparency = (bPreserveTransparency != 0);
-		
 		float vscale = StyledResolution.y / iResolution.y;
 		float hscale = StyledResolution.x / iResolution.x;
 		float fit_scale = max(vscale, hscale);
@@ -129,6 +128,14 @@ float4 main( in float2 fragCoord )
 				return float4(0, 0, 0, 0);
 			}
 			styled = Original.eval(im2loc).rgba;
+			if(bInvertAlpha) {
+				styled.a = 1 - styled.a;
+			}
+			if(bPreserveTransparency) {
+				if(styled.a <= fAlphaThreshold) {
+					styled = float4(0, 0, 0, 0);
+				}
+			}
 		}
 	}
 	

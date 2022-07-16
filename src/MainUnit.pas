@@ -2,8 +2,6 @@ unit MainUnit;
 
 interface
 
-{$DEFINE GPURASTERISER}
-
 uses
   System.SysUtils, System.Types, System.UITypes, System.Classes, System.Variants,
   FMX.Types, FMX.Controls, FMX.Forms, FMX.Graphics, FMX.Dialogs, StrUtils, Math,
@@ -198,14 +196,15 @@ begin
 
 
       Layer := TLayerShader.Create(Container);
-      Layer.AddTexture('Styled', TPath.Combine(MediaPath, 'haywain-wall.jpg'));
-      Layer.AddTexture('Original', TPath.Combine(MediaPath, 'haywain.jpg'));
+      Layer.AddImage(Styled, TPath.Combine(MediaPath, 'haywain-wall.jpg'));
+      Layer.AddImage(Original, TPath.Combine(MediaPath, 'haywain.jpg'));
       CheckBox5.IsChecked := True;  // Show Layer 1
-{
+
       Layer2 := TLayerShader.Create(Container);
-      Layer2.AddTexture('Styled', TPath.Combine(MediaPath, 'fermin-6.jpg'));
-      Layer2.AddTexture('Original', TPath.Combine(MediaPath, 'fermin-rembg.png'));
-}
+      Layer2.AddImage(Styled, TPath.Combine(MediaPath, 'fermin-6.jpg'));
+      Layer2.AddImage(Original, TPath.Combine(MediaPath, 'fermin-rembg.png'));
+      CheckBox6.IsChecked := True;  // Show Layer 2
+
 {
       Layer2.fImScale := 0.625;
       Layer.fImScale := 1;
@@ -235,9 +234,20 @@ begin
   if Assigned(Layer) then
     begin
       if Assigned(Layer) and (ComboBox1.ItemIndex = 0) then
-        Label4.Text := IntToStr(Layer.ImWidth) + ' x ' + IntToStr(Layer.ImHeight)
+        Label4.Text := IntToStr(Layer.ImWidth) +
+          ' x ' + IntToStr(Layer.ImHeight)
+          {
+           +
+          ' - ' + Layer.GetColorType(Styled) +
+          ' - ' + Layer.GetColorType(Original)
+          }
       else if Assigned(Layer2) and (ComboBox1.ItemIndex = 1) then
-        Label4.Text := IntToStr(Layer2.ImWidth) + ' x ' + IntToStr(Layer2.ImHeight)
+        Label4.Text := IntToStr(Layer2.ImWidth) +
+          ' x ' + IntToStr(Layer2.ImHeight)
+          { +
+          ' - ' + Layer2.GetColorType(Styled) +
+          ' - ' + Layer2.GetColorType(Original)
+          }
       else
         Label4.Text := '';
 
@@ -275,12 +285,8 @@ procedure TfrmShaderView.SaveLayers(Sender: TObject);
 begin
   if SaveDialog1.Execute then
   begin
-{$IFDEF GPURASTERISER}
     FSaveInNextPaint := True;
     Invalidate;
-{$ELSE}
-    DoSaveLayers;
-{$ENDIF}
   end;
 end;
 
@@ -290,37 +296,44 @@ var
   LSurface: ISkSurface;
   Elapsed: Cardinal;
   Seconds: Double;
+  IDX: Integer;
 begin
   FSaveInNextPaint := False;
 
   AWidth := Container.ChildMaxImWidth;
   AHeight := Container.ChildMaxImHeight;
 
-  {$IFDEF GPURASTERISER}
   if (Self.Canvas is TGrCanvasCustom) and Assigned(TGrCanvasCustom(Self.Canvas).Context) then
     LSurface := TSkSurface.MakeRenderTarget(TGrCanvasCustom(Self.Canvas).Context, False, TSkImageInfo.Create(AWidth, AHeight))
   else
     LSurface := TSkSurface.MakeRaster(AWidth, AHeight);
   LSurface.Canvas.Clear(TAlphaColors.Null);
-  {$ELSE}
-  LSurface := TSkSurface.MakeRaster(AWidth, AHeight);
-  LSurface.Canvas.Clear(TAlphaColors.Null);
-  {$ENDIF}
-  Elapsed := TThread.GetTickCount;
 
-  if Assigned(Layer.OnDraw) then
+  Elapsed := TThread.GetTickCount;
+  if Assigned(Container) and (Container.ChildrenCount > 1) then
+    begin
+      for IDX := 0 to Container.ChildrenCount - 1 do
+        begin
+          if Assigned(Container.Children[IDX]) and (Container.Children[IDX] is TLayerShader) then
+            begin
+              var ThisLayer: TLayerShader := Container.Children[IDX] as TLayerShader;
+              ThisLayer.OnDraw(ThisLayer, LSurface.Canvas, RectF(0, 0, AWidth, AHeight), 1);
+            end;
+        end;
+    end;
+{
+  if Assigned(Layer) and Assigned(Layer.OnDraw) then
     Layer.OnDraw(Layer, LSurface.Canvas, RectF(0, 0, AWidth, AHeight), 1);
 
-  if Assigned(Layer2.OnDraw) then
+  if Assigned(Layer2) and Assigned(Layer2.OnDraw) then
     Layer2.OnDraw(Layer2, LSurface.Canvas, RectF(0, 0, AWidth, AHeight), 1);
-
+}
   LSurface.MakeImageSnapshot.EncodeToFile(SaveDialog1.FileName);
 
   Elapsed := TThread.GetTickCount - Elapsed;
   Seconds := Elapsed / 1000;
 
   Label4.Text := 'T = ' + FloatToStr(Seconds);
-  ShowMessage('T = ' + FloatToStr(Seconds));
   FPaintCount := 0;
 
 end;

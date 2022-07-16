@@ -3,9 +3,12 @@ unit Shaders;
 interface
 
 uses
-  System.Classes, System.Types, FMX.Types, FMX.Controls, FMX.Objects, FMX.Layouts, Skia, Skia.FMX;
+  System.Classes, System.Types, System.TypInfo, FMX.Types, FMX.Graphics, FMX.Controls, FMX.Objects, FMX.Layouts, Skia, Skia.FMX;
 
 type
+  TLayerImageType = (Styled, Original);
+  TLayerImages = Array[0..1] of TBitmap;
+
   TAspectLayout = class(TRectangle)
   public
     ChildMaxImWidth: Integer;
@@ -40,6 +43,7 @@ type
   TLayerShader = class(TBaseShader)
   private
     procedure DoDraw(ASender: TObject; const ACanvas: ISkCanvas; const ADest: TRectF; const AOpacity: Single);
+    procedure MakeAlphaMap(const APixmap: ISkPixmap);
   public
     ImWidth: Integer;
     ImHeight: Integer;
@@ -51,12 +55,18 @@ type
     iOriginalColors: Boolean;
     iPreserveTransparency: Boolean;
     iInvertAlpha: Boolean;
+    bmImages: TLayerImages;
     constructor Create(AOwner: TComponent); override;
+    destructor Destroy; override;
     procedure AddShader;
-    function AddTexture(const TextureIdentifier: String; const TextureFIle: String): Boolean;
+    function AddImage(const ImageType: TLayerImageType; const ImageFile: String): Boolean;
+    function AddBitmap(const ImageType: TLayerImageType; const ImageBitmap: TBitmap): Boolean;
   published
     property OnDraw;
   end;
+
+const
+  LayerImageNames: Array [0..1] of String = ('Styled', 'Original');
 
 implementation
 
@@ -181,37 +191,93 @@ begin
   AddShader;
 end;
 
-function TLayerShader.AddTexture(const TextureIdentifier: String;
-  const TextureFile: String): Boolean;
+destructor TLayerShader.Destroy;
+var
+  I: Integer;
+begin
+  inherited;
+  for I := 0 to Length(bmImages) - 1 do
+    if Assigned(bmImages[I]) then
+      FreeAndNil(bmImages[I]);
+end;
+
+procedure TLayerShader.MakeAlphaMap(const APixmap: ISkPixmap);
+var
+  Alpha: Integer;
+  AlphaMap: Array [0..255] of Integer;
+  I: Integer;
+  AlphasUsed: Integer;
+begin
+  if Assigned(APixmap) then
+    begin
+      AlphasUsed := 0;
+      for I := 0 to 255 do
+        AlphaMap[I] := 0;
+
+      for var x := 0 to APixmap.Width do
+        for var y := 0 to APixmap.Height do
+          begin
+          {$RANGECHECKS ON}
+            Alpha := round(APixmap.Alphas[x, y] * 255);
+            Inc(AlphaMap[Alpha]);
+          {$RANGECHECKS OFF}
+          end;
+
+      for I := 0 to 255 do
+        if AlphaMap[I] > 0 then
+          Inc(AlphasUsed);
+
+      ShowMessage('AlphasUsed = ' + IntToStr(AlphasUsed));
+    end;
+end;
+
+function TLayerShader.AddImage(const ImageType: TLayerImageType; const ImageFile: String): Boolean;
+begin
+  Result := False;
+  if FileExists(ImageFile) then
+    begin
+      var ImageIdentifier: String := LayerImageNames[Ord(ImageType)];
+      bmImages[Ord(ImageType)] := TBitmap.Create;
+      bmImages[Ord(ImageType)].LoadFromFile(ImageFile);
+      Result := AddBitmap(ImageType, bmImages[Ord(ImageType)]);
+    end;
+end;
+
+function TLayerShader.AddBitmap(const ImageType: TLayerImageType;
+  const ImageBitmap: TBitmap): Boolean;
 var
   ImImageInfo: TSkImageInfo;
   HaveImage: Boolean;
 begin
   HaveImage := False;
 
-  if FileExists(TextureFile) and Effect.ChildExists(TextureIdentifier) then
+  var ImageIdentifier: String := LayerImageNames[Ord(ImageType)];
+
+  if Assigned(ImageBitmap) and Effect.ChildExists(ImageIdentifier) then
   begin
-    var TexImage: ISkImage := TSkImage.MakeFromEncodedFile(TextureFile);
+    var TexImage: ISkImage := ImageBitmap.ToSkImage;
 
     if Assigned(TexImage) then
     begin
       HaveImage := True;
-      Effect.ChildrenShaders[TextureIdentifier] := TexImage.MakeShader(TSKSamplingOptions.High);
-      if Effect.UniformExists(TextureIdentifier + 'Resolution') then
-        case Effect.UniformType[TextureIdentifier + 'Resolution'] of
+      Effect.ChildrenShaders[ImageIdentifier] := TexImage.MakeShader(TSKSamplingOptions.High);
+      if Effect.UniformExists(ImageIdentifier + 'Resolution') then
+        case Effect.UniformType[ImageIdentifier + 'Resolution'] of
           TSkRuntimeEffectUniformType.Float2:
-            Effect.SetUniform(TextureIdentifier + 'Resolution', TSkRuntimeEffectFloat2.Create(TexImage.Width, TexImage.Height));
+            Effect.SetUniform(ImageIdentifier + 'Resolution', TSkRuntimeEffectFloat2.Create(TexImage.Width, TexImage.Height));
           TSkRuntimeEffectUniformType.Float3:
-            Effect.SetUniform(TextureIdentifier + 'Resolution', TSkRuntimeEffectFloat3.Create(TexImage.Width, TexImage.Height, 0));
+            Effect.SetUniform(ImageIdentifier + 'Resolution', TSkRuntimeEffectFloat3.Create(TexImage.Width, TexImage.Height, 0));
           TSkRuntimeEffectUniformType.Int2:
-            Effect.SetUniform(TextureIdentifier + 'Resolution', TSkRuntimeEffectInt2.Create(TexImage.Width, TexImage.Height));
+            Effect.SetUniform(ImageIdentifier + 'Resolution', TSkRuntimeEffectInt2.Create(TexImage.Width, TexImage.Height));
           TSkRuntimeEffectUniformType.Int3:
-            Effect.SetUniform(TextureIdentifier + 'Resolution', TSkRuntimeEffectInt3.Create(TexImage.Width, TexImage.Height, 0));
+            Effect.SetUniform(ImageIdentifier + 'Resolution', TSkRuntimeEffectInt3.Create(TexImage.Width, TexImage.Height, 0));
         end;
 
       ImImageInfo := TexImage.ImageInfo;
       ImWidth := ImImageInfo.Width;
       ImHeight := ImImageInfo.Height;
+
+      //      MakeAlphaMap(TexImage.PeekPixels);
 
       if Owner is TAspectLayout then
         begin
@@ -230,8 +296,8 @@ begin
     Painter.Shader := Effect.MakeShader(False);
     end;
   end;
-  if Effect.UniformExists(TextureIdentifier + 'Valid') then
-    Effect.SetUniform(TextureIdentifier + 'Valid', BoolToInt(HaveImage));
+  if Effect.UniformExists(ImageIdentifier + 'Valid') then
+    Effect.SetUniform(ImageIdentifier + 'Valid', BoolToInt(HaveImage));
   Result := HaveImage;
 end;
 
